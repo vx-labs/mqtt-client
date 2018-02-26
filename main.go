@@ -11,12 +11,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-func client() (MQTT.Client, error) {
+func client(d MQTT.OnConnectHandler, l MQTT.ConnectionLostHandler) (MQTT.Client, error) {
 	opts := MQTT.NewClientOptions().AddBroker(viper.GetString("mqtt.broker"))
 	opts.Username = viper.GetString("mqtt.username")
 	opts.Password = viper.GetString("mqtt.password")
-	opts.SetClientID(fmt.Sprintf("mqtt-client-%s",time.Now().Format(time.Stamp)))
-
+	opts.SetClientID(fmt.Sprintf("mqtt-client-%s", time.Now().Format(time.Stamp)))
+	opts.OnConnect = d
+	opts.OnConnectionLost = l
 	c := MQTT.NewClient(opts)
 	if token := c.Connect(); token.Wait() && token.Error() != nil {
 		return nil, token.Error()
@@ -28,9 +29,16 @@ func now() string {
 	return time.Now().Format(time.Stamp)
 }
 
+func connLostHandler(ctx *cli.Context) MQTT.ConnectionLostHandler {
+	return func(client MQTT.Client, e error) {
+		fmt.Fprintf(ctx.App.Writer, "%s connection to broker lost - reconnecting..", color.GreenString(now()))
+	}
+}
+
 func mqttSubscriber() cli.Command {
 	var cliTopics cli.StringSlice
 	var cliQos int
+	done := make(chan error)
 	return cli.Command{
 		Name: "subscribe",
 		Flags: []cli.Flag{
@@ -47,23 +55,27 @@ func mqttSubscriber() cli.Command {
 			if cliQos > 2 || cliQos < 0 {
 				return fmt.Errorf("invalid qos provided")
 			}
-			c, err := client()
-			if err != nil {
-				return fmt.Errorf("unable to connect to mqtt broker: %v\n", err)
-			}
-			defer c.Disconnect(250)
+
 			topics := map[string]byte{}
 			for _, topic := range cliTopics {
 				topics[topic] = byte(cliQos)
 			}
-			if token := c.SubscribeMultiple(topics, func(client MQTT.Client, msg MQTT.Message) {
-				fmt.Fprintf(ctx.App.Writer, "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
-			}); token.Wait() && token.Error() != nil {
-				return fmt.Errorf("unable to subscribe to requested topics: %v\n", token.Error())
+
+			c, err := client(func(c MQTT.Client) {
+				if token := c.SubscribeMultiple(topics, func(client MQTT.Client, msg MQTT.Message) {
+					fmt.Fprintf(ctx.App.Writer, "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
+				}); token.Wait() && token.Error() != nil {
+					done <- token.Error()
+				} else {
+					fmt.Fprintf(ctx.App.Writer, "%s subscribed\n", color.GreenString(now()))
+				}
+			}, connLostHandler(ctx))
+			if err != nil {
+				return fmt.Errorf("unable to connect to mqtt broker: %v\n", err)
 			}
-			fmt.Fprintf(ctx.App.Writer, "%s subscribed\n", color.GreenString(now()))
-			<-make(chan struct{})
-			return nil
+			defer c.Disconnect(250)
+
+			return <- done
 		},
 	}
 }
@@ -97,27 +109,31 @@ func mqttPublisher() cli.Command {
 			if cliQos > 2 || cliQos < 0 {
 				return fmt.Errorf("invalid qos provided")
 			}
-			c, err := client()
+			done := make(chan error)
+			c, err := client(func(c MQTT.Client) {
+				defer close(done)
+				if token := c.Publish(cliTopic, byte(cliQos), retained, payload); token.Wait() && token.Error() != nil {
+					done <- fmt.Errorf("unable to publish to requested topic: %v\n", token.Error())
+				} else {
+					fmt.Fprintf(ctx.App.Writer, "%s %s ← %s\n", color.GreenString(now()), color.CyanString(cliTopic), string(payload))
+					done <- nil
+				}
+			}, connLostHandler(ctx))
 			if err != nil {
 				return fmt.Errorf("unable to connect to mqtt broker: %v\n", err)
 			}
 			defer c.Disconnect(250)
-
-			if token := c.Publish(cliTopic, byte(cliQos), retained, payload); token.Wait() && token.Error() != nil {
-				return fmt.Errorf("unable to publish to requested topic: %v\n", token.Error())
-			}
-			fmt.Fprintf(ctx.App.Writer, "%s %s ← %s\n", color.GreenString(now()), color.CyanString(cliTopic), string(payload))
-			return nil
+			return <-done
 		},
 	}
 }
 
 func main() {
 
-	viper.SetConfigName("config") // name of config file (without extension)
-	viper.AddConfigPath("$HOME/.mqtt-client")  // call multiple times to add many search paths
-	viper.AddConfigPath(".")               // optionally look for config in the working directory
-	err := viper.ReadInConfig() // Find and read the config file
+	viper.SetConfigName("config")             // name of config file (without extension)
+	viper.AddConfigPath("$HOME/.mqtt-client") // call multiple times to add many search paths
+	viper.AddConfigPath(".")                  // optionally look for config in the working directory
+	err := viper.ReadInConfig()               // Find and read the config file
 	if err != nil { // Handle errors reading the config file
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
