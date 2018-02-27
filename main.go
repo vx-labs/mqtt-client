@@ -66,8 +66,6 @@ func mqttSubscriber() cli.Command {
 					fmt.Fprintf(ctx.App.Writer, "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
 				}); token.Wait() && token.Error() != nil {
 					done <- token.Error()
-				} else {
-					fmt.Fprintf(ctx.App.Writer, "%s subscribed\n", color.GreenString(now()))
 				}
 			}, connLostHandler(ctx))
 			if err != nil {
