@@ -1,0 +1,20 @@
+stages:
+  - build
+services:
+  - docker:dind
+
+before_script:
+  - eval $(docker run --rm -e APPROLE_ID=$APPROLE_ID -e APPROLE_SECRET=$APPROLE_SECRET quay.io/vxlabs/vault-envexport)
+  - docker login -u=$DOCKER_USERNAME -p=$DOCKER_PASSWORD $DOCKER_REGISTRY
+  - apk -U add make
+
+build:
+  image: docker:latest
+  stage: build
+  cache:
+    paths:
+      - /root/.glide/
+  script:
+    - make
+    - docker tag vxlabs/mqtt-client $DOCKER_REGISTRY/vxlabs/mqtt-client:$CI_COMMIT_SHA
+    - docker push $DOCKER_REGISTRY/vxlabs/mqtt-client:$CI_COMMIT_SHA
