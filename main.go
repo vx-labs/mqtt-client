@@ -73,7 +73,7 @@ func mqttSubscriber() cli.Command {
 			}
 			defer c.Disconnect(250)
 
-			return <- done
+			return <-done
 		},
 	}
 }
@@ -132,9 +132,10 @@ func main() {
 	viper.AddConfigPath("$HOME/.mqtt-client") // call multiple times to add many search paths
 	viper.AddConfigPath(".")                  // optionally look for config in the working directory
 	viper.SetDefault("mqtt.broker", "tcp://localhost:1883")
-	err := viper.ReadInConfig()               // Find and read the config file
+	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil { // Handle errors reading the config file
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		fmt.Printf("error while loading configuration: %s \n", err)
+		fmt.Print("default configuration values will be used\n")
 	}
 	app := cli.NewApp()
 	app.Name = "mqtt-client"
