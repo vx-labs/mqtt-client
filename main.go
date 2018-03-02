@@ -9,6 +9,7 @@ import (
 	"github.com/fatih/color"
 	"time"
 	"github.com/spf13/viper"
+	"strings"
 )
 
 func client(d MQTT.OnConnectHandler, l MQTT.ConnectionLostHandler) (MQTT.Client, error) {
@@ -55,12 +56,14 @@ func mqttSubscriber() cli.Command {
 			if cliQos > 2 || cliQos < 0 {
 				return fmt.Errorf("invalid qos provided")
 			}
-
+			if len(cliTopics) == 0 {
+				return fmt.Errorf("no topics were selected")
+			}
 			topics := map[string]byte{}
 			for _, topic := range cliTopics {
 				topics[topic] = byte(cliQos)
 			}
-
+			fmt.Fprintf(ctx.App.Writer, "%s subscribing to topics %s\n", color.GreenString(now()), color.CyanString(strings.Join(cliTopics, ",")))
 			c, err := client(func(c MQTT.Client) {
 				if token := c.SubscribeMultiple(topics, func(client MQTT.Client, msg MQTT.Message) {
 					fmt.Fprintf(ctx.App.Writer, "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
