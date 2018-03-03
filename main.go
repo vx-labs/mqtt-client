@@ -32,7 +32,7 @@ func now() string {
 
 func connLostHandler(ctx *cli.Context) MQTT.ConnectionLostHandler {
 	return func(client MQTT.Client, e error) {
-		fmt.Fprintf(ctx.App.Writer, "%s connection to broker lost - reconnecting..", color.GreenString(now()))
+		fmt.Fprintf(ctx.App.Writer, "%s connection to broker lost - reconnecting..\n", color.GreenString(now()))
 	}
 }
 
