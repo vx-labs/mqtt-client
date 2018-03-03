@@ -67,7 +67,7 @@ func mqttSubscriber() cli.Command {
 			c, err := client(func(c MQTT.Client) {
 				if token := c.SubscribeMultiple(topics, func(client MQTT.Client, msg MQTT.Message) {
 					if msg.Retained() {
-						fmt.Fprintf(ctx.App.Writer, "%s %s → %s (retained)\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
+						fmt.Fprintf(ctx.App.Writer, "%s %s → %s (retained)\n", color.GreenString(now()), color.CyanString(msg.Topic()), color.YellowString(string(msg.Payload())))
 					} else {
 						fmt.Fprintf(ctx.App.Writer, "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
 					}
