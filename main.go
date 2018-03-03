@@ -66,7 +66,11 @@ func mqttSubscriber() cli.Command {
 			fmt.Fprintf(ctx.App.Writer, "%s subscribing to topics %s\n", color.GreenString(now()), color.CyanString(strings.Join(cliTopics, ",")))
 			c, err := client(func(c MQTT.Client) {
 				if token := c.SubscribeMultiple(topics, func(client MQTT.Client, msg MQTT.Message) {
-					fmt.Fprintf(ctx.App.Writer, "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
+					if msg.Retained() {
+						fmt.Fprintf(ctx.App.Writer, "%s %s → %s (retained)\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
+					} else {
+						fmt.Fprintf(ctx.App.Writer, "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
+					}
 				}); token.Wait() && token.Error() != nil {
 					done <- token.Error()
 				}
@@ -75,7 +79,6 @@ func mqttSubscriber() cli.Command {
 				return fmt.Errorf("unable to connect to mqtt broker: %v\n", err)
 			}
 			defer c.Disconnect(250)
-
 			return <-done
 		},
 	}
