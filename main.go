@@ -10,6 +10,8 @@ import (
 	"time"
 	"github.com/spf13/viper"
 	"strings"
+	"syscall"
+	"os/signal"
 )
 
 func client(d MQTT.OnConnectHandler, l MQTT.ConnectionLostHandler) (MQTT.Client, error) {
@@ -59,6 +61,14 @@ func mqttSubscriber() cli.Command {
 			if len(cliTopics) == 0 {
 				return fmt.Errorf("no topics were selected")
 			}
+
+			sigc := make(chan os.Signal, 1)
+			signal.Notify(sigc,
+				syscall.SIGHUP,
+				syscall.SIGINT,
+				syscall.SIGTERM,
+				syscall.SIGQUIT)
+
 			topics := map[string]byte{}
 			for _, topic := range cliTopics {
 				topics[topic] = byte(cliQos)
@@ -78,8 +88,14 @@ func mqttSubscriber() cli.Command {
 			if err != nil {
 				return fmt.Errorf("unable to connect to mqtt broker: %v\n", err)
 			}
-			defer c.Disconnect(250)
-			return <-done
+			select {
+			case err := <-done:
+				return err
+			case <-sigc:
+				fmt.Fprintf(ctx.App.Writer, "%s disconnecting from broker\n", color.GreenString(now()))
+				c.Disconnect(250)
+				return nil
+			}
 		},
 	}
 }
@@ -113,6 +129,9 @@ func mqttPublisher() cli.Command {
 			if cliQos > 2 || cliQos < 0 {
 				return fmt.Errorf("invalid qos provided")
 			}
+			if len(cliTopic) == 0 {
+				return fmt.Errorf("no topic were selected")
+			}
 			done := make(chan error)
 			c, err := client(func(c MQTT.Client) {
 				defer close(done)
@@ -126,8 +145,9 @@ func mqttPublisher() cli.Command {
 			if err != nil {
 				return fmt.Errorf("unable to connect to mqtt broker: %v\n", err)
 			}
-			defer c.Disconnect(250)
-			return <-done
+			err = <-done
+			c.Disconnect(250)
+			return err
 		},
 	}
 }
