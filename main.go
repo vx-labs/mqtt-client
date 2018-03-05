@@ -18,7 +18,7 @@ func client(d MQTT.OnConnectHandler, l MQTT.ConnectionLostHandler) (MQTT.Client,
 	opts := MQTT.NewClientOptions().AddBroker(viper.GetString("mqtt.broker"))
 	opts.Username = viper.GetString("mqtt.username")
 	opts.Password = viper.GetString("mqtt.password")
-	opts.SetClientID(fmt.Sprintf("mqtt-client-%s", time.Now().Format(time.Stamp)))
+	opts.SetClientID(fmt.Sprintf("mc-%s", time.Now().Format("15:04:05")))
 	opts.OnConnect = d
 	opts.OnConnectionLost = l
 	c := MQTT.NewClient(opts)
