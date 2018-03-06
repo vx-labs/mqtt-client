@@ -10,3 +10,5 @@ COPY --from=builder /bin/mqtt-client /bin/mqtt-client
 WORKDIR /var/lib/mqtt-client
 RUN touch config.yaml
 ENTRYPOINT ["/bin/mqtt-client"]
+RUN apk -U add ca-certificates && \
+    rm -rf /var/cache/apk/*
