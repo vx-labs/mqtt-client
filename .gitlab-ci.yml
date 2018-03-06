@@ -17,4 +17,6 @@ build:
   script:
     - make
     - docker tag vxlabs/mqtt-client $DOCKER_REGISTRY/vxlabs/mqtt-client:$CI_COMMIT_SHA
+    - docker tag vxlabs/mqtt-client $DOCKER_REGISTRY/vxlabs/mqtt-client:latest
     - docker push $DOCKER_REGISTRY/vxlabs/mqtt-client:$CI_COMMIT_SHA
+    - docker push $DOCKER_REGISTRY/vxlabs/mqtt-client:latest
