@@ -3,7 +3,7 @@ WORKDIR $GOPATH/src/github.com/vx-labs/mqtt-client
 COPY glide* ./
 RUN glide install -v
 COPY . .
-RUN go test ./... && go build -o /bin/mqtt-client ./main.go
+RUN go test ./... && go build -o /bin/mqtt-client .
 
 FROM alpine
 COPY --from=builder /bin/mqtt-client /bin/mqtt-client
