@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/fatih/color"
 	"github.com/spf13/viper"
-	"github.com/urfave/cli"
 )
 
 func client(d MQTT.OnConnectHandler, l MQTT.ConnectionLostHandler) (MQTT.Client, error) {
@@ -28,8 +29,8 @@ func now() string {
 	return time.Now().Format(time.Stamp)
 }
 
-func connLostHandler(ctx *cli.Context) MQTT.ConnectionLostHandler {
+func connLostHandler(app *cobra.Command) MQTT.ConnectionLostHandler {
 	return func(client MQTT.Client, e error) {
-		fmt.Fprintf(ctx.App.Writer, "%s connection to broker lost - reconnecting..\n", color.GreenString(now()))
+		fmt.Fprintf(app.OutOrStderr(), "%s connection to broker lost - reconnecting..\n", color.GreenString(now()))
 	}
 }

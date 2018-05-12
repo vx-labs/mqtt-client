@@ -1,8 +1,8 @@
-hash: e8970013247b559ef8125755343e32dd0bc8a376108d08ed8c97e88aef05d931
-updated: 2018-03-02T09:56:43.203997518+01:00
+hash: d0f08196b242ac9b782dbf2d2be6fa00ee6670730e970ce89c7fcd4d58bc45a0
+updated: 2018-05-12T15:03:45.799933463+02:00
 imports:
 - name: github.com/eclipse/paho.mqtt.golang
-  version: aff15770515e3c57fc6109da73d42b0d46f7f483
+  version: 36d01c2b4cbeb3d2a12063e4880ce30800af9560
   subpackages:
   - packets
 - name: github.com/fatih/color
@@ -10,7 +10,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/hashicorp/hcl
-  version: 23c074d0eceb2b8a5bfdbb271ab780cde70f05a8
+  version: ef8a98b0bbce4a65b5aa4c368430a80ddc533168
   subpackages:
   - hcl/ast
   - hcl/parser
@@ -21,37 +21,39 @@ imports:
   - json/parser
   - json/scanner
   - json/token
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/magiconair/properties
   version: 2c9e9502788518c97fe44e8955cd069417ee89df
 - name: github.com/mattn/go-colorable
-  version: 7dc3415be66d7cc68bf0182f35c8d31f8d2ad8a7
+  version: efa589957cd060542a26d2dd7832fd6a6c6c3ade
 - name: github.com/mattn/go-isatty
   version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/mitchellh/mapstructure
-  version: 00c29f56e2386353d58c599509e8dc3801b0d716
+  version: bb74f1db0675b241733089d5a1faa5dd8b0ef57b
 - name: github.com/pelletier/go-toml
-  version: 05bcc0fb0d3e60da4b8dd5bd7e0ea563eb4ca943
+  version: 66540cf1fcd2c3aee6f6787dfa32a6ae9a870f12
 - name: github.com/spf13/afero
-  version: bbf41cb36dffe15dff5bf7e18c447801e7ffe163
+  version: 63644898a8da0bc22138abf860edaf5277b6102e
   subpackages:
   - mem
 - name: github.com/spf13/cast
   version: 8965335b8c7107321228e3e3702cab9832751bac
+- name: github.com/spf13/cobra
+  version: a1f051bc3eba734da4772d60e2d677f47cf93ef4
 - name: github.com/spf13/jwalterweatherman
   version: 7c0cea34c8ece3fbeb2b27ab9b59511d360fb394
 - name: github.com/spf13/pflag
-  version: ee5fd03fd6acfd43e44aea0b4135958546ed8e73
+  version: 583c0c0531f06d5278b7d917446061adc344b5cd
 - name: github.com/spf13/viper
-  version: aafc9e6bc7b7bb53ddaa75a5ef49a17d6e654be5
-- name: github.com/urfave/cli
-  version: 8e01ec4cd3e2d84ab2fe90d8210528ffbb06d8ff
+  version: 15738813a09db5c8e5b60a19d67d3f9bd38da3a4
 - name: golang.org/x/net
   version: 66aacef3dd8a676686c7ae3716979581e8b03c47
   subpackages:
   - proxy
   - websocket
 - name: golang.org/x/sys
-  version: d818ba11af4465e00c1998bd3f8a55603b422290
+  version: ebfc5b4631820b793c9010c87fd8fef0f39eb082
   subpackages:
   - unix
 - name: golang.org/x/text
@@ -60,5 +62,5 @@ imports:
   - transform
   - unicode/norm
 - name: gopkg.in/yaml.v2
-  version: 7f97868eec74b32b0982dd158a51a446d1da7eb5
+  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports: []

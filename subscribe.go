@@ -2,74 +2,47 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
-func mqttSubscriber() cli.Command {
-	var cliTopics cli.StringSlice
-	var cliQos int
+func mqttSubscriber() *cobra.Command {
 	done := make(chan error)
-	return cli.Command{
-		Name: "subscribe",
-		Flags: []cli.Flag{
-			cli.StringSliceFlag{
-				Name:  "topic, t",
-				Value: &cliTopics,
-			},
-			cli.IntFlag{
-				Name:        "qos, q",
-				Destination: &cliQos,
-			},
-		},
-		Action: func(ctx *cli.Context) error {
-			if cliQos > 2 || cliQos < 0 {
-				return fmt.Errorf("invalid qos provided")
-			}
-			if len(cliTopics) == 0 {
-				return fmt.Errorf("no topics were selected")
-			}
+	c := &cobra.Command{
+		Use: "subscribe",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			topics := getStringArrayFlag(cmd, "topic")
+			qos := getIntFlag(cmd, "qos")
 
-			sigc := make(chan os.Signal, 1)
-			signal.Notify(sigc,
-				syscall.SIGHUP,
-				syscall.SIGINT,
-				syscall.SIGTERM,
-				syscall.SIGQUIT)
-
-			topics := map[string]byte{}
-			for _, topic := range cliTopics {
-				topics[topic] = byte(cliQos)
+			topicsMap := map[string]byte{}
+			for _, topic := range topics {
+				topicsMap[topic] = byte(qos)
 			}
-			fmt.Fprintf(ctx.App.Writer, "%s subscribing to topics %s\n", color.GreenString(now()), color.CyanString(strings.Join(cliTopics, ",")))
-			c, err := client(func(c MQTT.Client) {
-				if token := c.SubscribeMultiple(topics, func(client MQTT.Client, msg MQTT.Message) {
+			fmt.Fprintf(cmd.OutOrStderr(), "%s subscribing to topics %s\n", color.GreenString(now()), color.CyanString(strings.Join(topics, ",")))
+			_, err := client(func(c MQTT.Client) {
+				if token := c.SubscribeMultiple(topicsMap, func(client MQTT.Client, msg MQTT.Message) {
 					if msg.Retained() {
-						fmt.Fprintf(ctx.App.Writer, "%s %s → %s (retained)\n", color.GreenString(now()), color.CyanString(msg.Topic()), color.YellowString(string(msg.Payload())))
+						fmt.Fprintf(cmd.OutOrStdout(), "%s %s → %s (retained)\n", color.GreenString(now()), color.CyanString(msg.Topic()), color.YellowString(string(msg.Payload())))
 					} else {
-						fmt.Fprintf(ctx.App.Writer, "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
+						fmt.Fprintf(cmd.OutOrStdout(), "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
 					}
 				}); token.Wait() && token.Error() != nil {
 					done <- token.Error()
 				}
-			}, connLostHandler(ctx))
+			}, connLostHandler(cmd))
 			if err != nil {
-				return fmt.Errorf("unable to connect to mqtt broker: %v\n", err)
+				return fmt.Errorf("unable to connect to mqtt broker: %v", err)
 			}
 			select {
 			case err := <-done:
 				return err
-			case <-sigc:
-				fmt.Fprintf(ctx.App.Writer, "%s disconnecting from broker\n", color.GreenString(now()))
-				c.Disconnect(250)
-				return nil
 			}
 		},
 	}
+	c.Flags().StringArrayP("topic", "t", nil, "subscribe to these topics")
+	c.Flags().IntP("qos", "q", 0, "set the subscription QoS policy")
+	return c
 }

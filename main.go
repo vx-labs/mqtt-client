@@ -2,33 +2,32 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"os"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/urfave/cli"
 )
 
 func main() {
-	viper.AutomaticEnv()
-	viper.SetConfigName("config")
-	viper.AddConfigPath("$HOME/.mqtt-client")
-	viper.AddConfigPath(".")
-	viper.SetDefault("mqtt.broker", "tcp://localhost:1883")
-	err := viper.ReadInConfig()
-	if err != nil {
-		fmt.Printf("error while loading configuration: %s \n", err)
-		fmt.Print("default configuration values will be used\n")
+
+	app := cobra.Command{
+		Use:   "mqtt",
+		Short: "command-line mqtt client",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			viper.AutomaticEnv()
+			viper.SetConfigName("config")
+			viper.AddConfigPath("$HOME/.mqtt-client")
+			viper.AddConfigPath("$HOME/.config/mqtt-client")
+			viper.AddConfigPath(".")
+			viper.SetDefault("mqtt.broker", "tcp://localhost:1883")
+			err := viper.ReadInConfig()
+			if err != nil {
+				fmt.Fprintf(cmd.OutOrStderr(), "error while loading configuration: %s", err)
+				fmt.Fprintf(cmd.OutOrStderr(), "default configuration values will be used")
+			}
+			return nil
+		},
 	}
-	app := cli.NewApp()
-	app.Name = "mqtt-client"
-	app.Usage = "command-line mqtt client"
-	app.Commands = []cli.Command{
-		mqttSubscriber(),
-		mqttPublisher(),
-	}
-	err = app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
-	}
+	app.AddCommand(mqttPublisher())
+	app.AddCommand(mqttSubscriber())
+	app.Execute()
 }
