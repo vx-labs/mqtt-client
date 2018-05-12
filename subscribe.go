@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/fatih/color"
@@ -11,18 +14,23 @@ import (
 
 func mqttSubscriber() *cobra.Command {
 	done := make(chan error)
+	var mqtt MQTT.Client
 	c := &cobra.Command{
 		Use: "subscribe",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			topics := getStringArrayFlag(cmd, "topic")
 			qos := getIntFlag(cmd, "qos")
 
+			sigc := make(chan os.Signal)
+			signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
+
 			topicsMap := map[string]byte{}
 			for _, topic := range topics {
 				topicsMap[topic] = byte(qos)
 			}
 			fmt.Fprintf(cmd.OutOrStderr(), "%s subscribing to topics %s\n", color.GreenString(now()), color.CyanString(strings.Join(topics, ",")))
-			_, err := client(func(c MQTT.Client) {
+			var err error
+			mqtt, err = client(func(c MQTT.Client) {
 				if token := c.SubscribeMultiple(topicsMap, func(client MQTT.Client, msg MQTT.Message) {
 					if msg.Retained() {
 						fmt.Fprintf(cmd.OutOrStdout(), "%s %s → %s (retained)\n", color.GreenString(now()), color.CyanString(msg.Topic()), color.YellowString(string(msg.Payload())))
@@ -39,6 +47,10 @@ func mqttSubscriber() *cobra.Command {
 			select {
 			case err := <-done:
 				return err
+			case <-sigc:
+				fmt.Fprintf(cmd.OutOrStderr(), "%s disconnecting from broker\n", color.GreenString(now()))
+				mqtt.Disconnect(100)
+				return nil
 			}
 		},
 	}
