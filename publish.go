@@ -24,20 +24,26 @@ func mqttPublisher() *cobra.Command {
 				return fmt.Errorf("no topic were selected")
 			}
 			done := make(chan error)
+			spinner := newSpinner(cmd.OutOrStderr(), fmt.Sprintf("publishing message to %s", topic))
+			spinner.FinalMSG = fmt.Sprintf("%s %s ← %s\n", color.GreenString(now()), color.CyanString(topic), payload)
+
 			c, err := client(func(c MQTT.Client) {
 				defer close(done)
 				if token := c.Publish(topic, byte(qos), retain, payload); token.Wait() && token.Error() != nil {
 					done <- fmt.Errorf("unable to publish to requested topic: %v", token.Error())
 				} else {
-					fmt.Fprintf(cmd.OutOrStdout(), "%s %s ← %s\n", color.GreenString(now()), color.CyanString(topic), payload)
 					done <- nil
 				}
 			}, connLostHandler(cmd))
+			spinner.Stop()
 			if err != nil {
 				return fmt.Errorf("unable to connect to mqtt broker: %v", err)
 			}
 			err = <-done
-			c.Disconnect(250)
+			spinner = newSpinner(cmd.OutOrStderr(), "disconnecting from broker")
+			spinner.FinalMSG = "disconnected from broker\n"
+			c.Disconnect(1000)
+			spinner.Stop()
 			return err
 		},
 	}

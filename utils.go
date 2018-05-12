@@ -1,8 +1,11 @@
 package main
 
 import (
+	"io"
 	"log"
+	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 )
 
@@ -33,4 +36,14 @@ func getIntFlag(cmd *cobra.Command, name string) int {
 		log.Fatal(err)
 	}
 	return arg
+}
+
+func newSpinner(out io.Writer, suffix string) *spinner.Spinner {
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Writer = out
+	s.Suffix = suffix
+	s.FinalMSG = ""
+	s.Color("cyan")
+	s.Start()
+	return s
 }

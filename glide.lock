@@ -1,6 +1,8 @@
-hash: d0f08196b242ac9b782dbf2d2be6fa00ee6670730e970ce89c7fcd4d58bc45a0
-updated: 2018-05-12T15:03:45.799933463+02:00
+hash: baf8ccde1e66e0e7845acf610b58c6c19f953ae804236f95d36e200f068dce52
+updated: 2018-05-12T15:12:31.959855616+02:00
 imports:
+- name: github.com/briandowns/spinner
+  version: 48dbb65d7bd5c74ab50d53d04c949f20e3d14944
 - name: github.com/eclipse/paho.mqtt.golang
   version: 36d01c2b4cbeb3d2a12063e4880ce30800af9560
   subpackages:

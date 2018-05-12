@@ -5,3 +5,5 @@ import:
 - package: github.com/spf13/viper
 - package: github.com/spf13/cobra
   version: ~0.0.2
+- package: github.com/briandowns/spinner
+  version: ~1.0.0
