@@ -22,7 +22,6 @@ func mqttSubscriber() *cobra.Command {
 			qos := getIntFlag(cmd, "qos")
 
 			sigc := make(chan os.Signal)
-			signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 
 			topicsMap := map[string]byte{}
 			for _, topic := range topics {
@@ -45,6 +44,7 @@ func mqttSubscriber() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to connect to mqtt broker: %v", err)
 			}
+			signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 			select {
 			case err := <-done:
 				return err
