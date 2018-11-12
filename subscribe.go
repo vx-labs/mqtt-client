@@ -30,6 +30,7 @@ func mqttSubscriber() *cobra.Command {
 			spinner := newSpinner(cmd.OutOrStderr(), fmt.Sprintf("subscribing to topics %s", strings.Join(topics, ",")))
 			var err error
 			mqtt, err = client(func(c MQTT.Client) {
+				spinner.Stop()
 				if token := c.SubscribeMultiple(topicsMap, func(client MQTT.Client, msg MQTT.Message) {
 					if msg.Retained() {
 						fmt.Fprintf(cmd.OutOrStdout(), "%s %s → %s (retained)\n", color.GreenString(now()), color.CyanString(msg.Topic()), color.YellowString(string(msg.Payload())))
@@ -40,8 +41,8 @@ func mqttSubscriber() *cobra.Command {
 					done <- token.Error()
 				}
 			}, connLostHandler(cmd))
-			spinner.Stop()
 			if err != nil {
+				spinner.Stop()
 				return fmt.Errorf("unable to connect to mqtt broker: %v", err)
 			}
 			signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
@@ -49,8 +50,8 @@ func mqttSubscriber() *cobra.Command {
 			case err := <-done:
 				return err
 			case <-sigc:
+				fmt.Print("\n")
 				spinner = newSpinner(cmd.OutOrStderr(), "disconnecting from broker")
-				spinner.FinalMSG = "disconnected from broker\n"
 				mqtt.Disconnect(1000)
 				spinner.Stop()
 				return nil

@@ -15,8 +15,11 @@ func mqttPublisher() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			topic := getStringFlag(cmd, "topic")
 			retain := getBoolFlag(cmd, "retain")
-			payload := getStringFlag(cmd, "message")
+			payload := []byte(getStringFlag(cmd, "message"))
 			qos := getIntFlag(cmd, "qos")
+			if len(payload) == 0 {
+				payload = nil
+			}
 			if qos > 2 || qos < 0 {
 				return fmt.Errorf("invalid qos provided")
 			}
@@ -26,7 +29,6 @@ func mqttPublisher() *cobra.Command {
 			done := make(chan error)
 			spinner := newSpinner(cmd.OutOrStderr(), fmt.Sprintf("publishing message to %s", topic))
 			spinner.FinalMSG = fmt.Sprintf("%s %s ← %s\n", color.GreenString(now()), color.CyanString(topic), payload)
-
 			c, err := client(func(c MQTT.Client) {
 				defer close(done)
 				if token := c.Publish(topic, byte(qos), retain, payload); token.Wait() && token.Error() != nil {
@@ -35,13 +37,13 @@ func mqttPublisher() *cobra.Command {
 					done <- nil
 				}
 			}, connLostHandler(cmd))
-			spinner.Stop()
 			if err != nil {
+				spinner.Stop()
 				return fmt.Errorf("unable to connect to mqtt broker: %v", err)
 			}
 			err = <-done
+			spinner.Stop()
 			spinner = newSpinner(cmd.OutOrStderr(), "disconnecting from broker")
-			spinner.FinalMSG = "disconnected from broker\n"
 			c.Disconnect(1000)
 			spinner.Stop()
 			return err

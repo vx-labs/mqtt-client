@@ -41,7 +41,7 @@ func getIntFlag(cmd *cobra.Command, name string) int {
 func newSpinner(out io.Writer, suffix string) *spinner.Spinner {
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	s.Writer = out
-	s.Suffix = suffix
+	s.Suffix = " " + suffix
 	s.FinalMSG = ""
 	s.Color("cyan")
 	s.Start()
