@@ -32,7 +32,7 @@ func parseTemplate(user string, fallback string) (*template.Template, error) {
 		body = user
 	}
 	tpl := template.New("").Funcs(promptui.FuncMap)
-	tpl, err := tpl.Parse(body)
+	tpl, err := tpl.Parse(body + "\n")
 	if err == nil {
 		return tpl, nil
 	}
