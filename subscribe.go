@@ -20,6 +20,7 @@ func mqttSubscriber() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			topics := getStringArrayFlag(cmd, "topic")
 			qos := getIntFlag(cmd, "qos")
+			raw := getBoolFlag(cmd, "raw")
 
 			sigc := make(chan os.Signal)
 
@@ -32,10 +33,14 @@ func mqttSubscriber() *cobra.Command {
 			mqtt, err = client(func(c MQTT.Client) {
 				spinner.Stop()
 				if token := c.SubscribeMultiple(topicsMap, func(client MQTT.Client, msg MQTT.Message) {
-					if msg.Retained() {
-						fmt.Fprintf(cmd.OutOrStdout(), "%s %s → %s (retained)\n", color.GreenString(now()), color.CyanString(msg.Topic()), color.YellowString(string(msg.Payload())))
+					if !raw {
+						if msg.Retained() {
+							fmt.Fprintf(cmd.OutOrStdout(), "%s %s → %s (retained)\n", color.GreenString(now()), color.CyanString(msg.Topic()), color.YellowString(string(msg.Payload())))
+						} else {
+							fmt.Fprintf(cmd.OutOrStdout(), "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
+						}
 					} else {
-						fmt.Fprintf(cmd.OutOrStdout(), "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
+						fmt.Fprintln(os.Stdout, string(msg.Payload()))
 					}
 				}); token.Wait() && token.Error() != nil {
 					done <- token.Error()
@@ -60,5 +65,6 @@ func mqttSubscriber() *cobra.Command {
 	}
 	c.Flags().StringArrayP("topic", "t", nil, "subscribe to these topics")
 	c.Flags().IntP("qos", "q", 0, "set the subscription QoS policy")
+	c.Flags().BoolP("raw", "", false, "only display received messages' payload")
 	return c
 }
