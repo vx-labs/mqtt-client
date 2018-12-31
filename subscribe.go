@@ -1,16 +1,43 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"text/template"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
-	"github.com/fatih/color"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
+
+type RawMessage struct {
+	Timestamp string
+	Topic     string
+	Retained  bool
+	Payload   string
+	Qos       int32
+	Parsed    map[string]interface{}
+}
+
+const defaultMsgFormat = `{{ .Timestamp | green }} {{ .Topic | cyan }} → {{ .Payload }}{{if .Retained}} {{ "(retained)" | yellow }}{{end}}`
+
+func parseTemplate(user string, fallback string) (*template.Template, error) {
+	body := fallback
+	if user != "" {
+		body = user
+	}
+	tpl := template.New("").Funcs(promptui.FuncMap)
+	tpl, err := tpl.Parse(body)
+	if err == nil {
+		return tpl, nil
+	}
+	return nil, err
+}
 
 func mqttSubscriber() *cobra.Command {
 	done := make(chan error)
@@ -21,27 +48,31 @@ func mqttSubscriber() *cobra.Command {
 			topics := getStringArrayFlag(cmd, "topic")
 			qos := getIntFlag(cmd, "qos")
 			raw := getBoolFlag(cmd, "raw")
+			userFormat := getStringFlag(cmd, "format")
 
 			sigc := make(chan os.Signal)
-
+			tpl, err := parseTemplate(userFormat, defaultMsgFormat)
+			if err != nil {
+				log.Fatal(err)
+			}
 			topicsMap := map[string]byte{}
 			for _, topic := range topics {
 				topicsMap[topic] = byte(qos)
 			}
 			spinner := newSpinner(cmd.OutOrStderr(), fmt.Sprintf("subscribing to topics %s", strings.Join(topics, ",")), raw)
-			var err error
 			mqtt, err = client(func(c MQTT.Client) {
 				spinner.Stop()
 				if token := c.SubscribeMultiple(topicsMap, func(client MQTT.Client, msg MQTT.Message) {
-					if !raw {
-						if msg.Retained() {
-							fmt.Fprintf(cmd.OutOrStdout(), "%s %s → %s (retained)\n", color.GreenString(now()), color.CyanString(msg.Topic()), color.YellowString(string(msg.Payload())))
-						} else {
-							fmt.Fprintf(cmd.OutOrStdout(), "%s %s → %s\n", color.GreenString(now()), color.CyanString(msg.Topic()), string(msg.Payload()))
-						}
-					} else {
-						fmt.Fprintln(os.Stdout, string(msg.Payload()))
+					data := RawMessage{
+						Parsed:    nil,
+						Payload:   string(msg.Payload()),
+						Qos:       int32(msg.Qos()),
+						Retained:  msg.Retained(),
+						Timestamp: now(),
+						Topic:     msg.Topic(),
 					}
+					json.Unmarshal(msg.Payload(), &data.Parsed)
+					tpl.Execute(os.Stdout, data)
 				}); token.Wait() && token.Error() != nil {
 					done <- token.Error()
 				}
@@ -65,6 +96,7 @@ func mqttSubscriber() *cobra.Command {
 	}
 	c.Flags().StringArrayP("topic", "t", nil, "subscribe to these topics")
 	c.Flags().IntP("qos", "q", 0, "set the subscription QoS policy")
-	c.Flags().BoolP("raw", "", false, "only display received messages' payload")
+	c.Flags().StringP("format", "", "", "use this template to format messages")
+	c.Flags().BoolP("raw", "", false, "do not display any spinner")
 	return c
 }
