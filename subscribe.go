@@ -28,7 +28,7 @@ func mqttSubscriber() *cobra.Command {
 			for _, topic := range topics {
 				topicsMap[topic] = byte(qos)
 			}
-			spinner := newSpinner(cmd.OutOrStderr(), fmt.Sprintf("subscribing to topics %s", strings.Join(topics, ",")))
+			spinner := newSpinner(cmd.OutOrStderr(), fmt.Sprintf("subscribing to topics %s", strings.Join(topics, ",")), raw)
 			var err error
 			mqtt, err = client(func(c MQTT.Client) {
 				spinner.Stop()
@@ -56,7 +56,7 @@ func mqttSubscriber() *cobra.Command {
 				return err
 			case <-sigc:
 				fmt.Print("\n")
-				spinner = newSpinner(cmd.OutOrStderr(), "disconnecting from broker")
+				spinner = newSpinner(cmd.OutOrStderr(), "disconnecting from broker", raw)
 				mqtt.Disconnect(1000)
 				spinner.Stop()
 				return nil

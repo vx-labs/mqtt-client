@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -27,8 +28,7 @@ func mqttPublisher() *cobra.Command {
 				return fmt.Errorf("no topic were selected")
 			}
 			done := make(chan error)
-			spinner := newSpinner(cmd.OutOrStderr(), fmt.Sprintf("publishing message to %s", topic))
-			spinner.FinalMSG = fmt.Sprintf("%s %s ← %s\n", color.GreenString(now()), color.CyanString(topic), payload)
+			spinner := newSpinner(cmd.OutOrStderr(), fmt.Sprintf("publishing message to %s", topic), false)
 			c, err := client(func(c MQTT.Client) {
 				defer close(done)
 				if token := c.Publish(topic, byte(qos), retain, payload); token.Wait() && token.Error() != nil {
@@ -43,7 +43,8 @@ func mqttPublisher() *cobra.Command {
 			}
 			err = <-done
 			spinner.Stop()
-			spinner = newSpinner(cmd.OutOrStderr(), "disconnecting from broker")
+			fmt.Fprintf(os.Stdout, "%s %s ← %s\n", color.GreenString(now()), color.CyanString(topic), payload)
+			spinner = newSpinner(cmd.OutOrStderr(), "disconnecting from broker", false)
 			c.Disconnect(1000)
 			spinner.Stop()
 			return err

@@ -38,7 +38,18 @@ func getIntFlag(cmd *cobra.Command, name string) int {
 	return arg
 }
 
-func newSpinner(out io.Writer, suffix string) *spinner.Spinner {
+type Stopper interface {
+	Stop()
+}
+
+type nullSpinner struct{}
+
+func (_ *nullSpinner) Stop() {}
+
+func newSpinner(out io.Writer, suffix string, raw bool) Stopper {
+	if raw {
+		return &nullSpinner{}
+	}
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	s.Writer = out
 	s.Suffix = " " + suffix
