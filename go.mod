@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/alecthomas/gometalinter v3.0.0+incompatible // indirect
-	github.com/briandowns/spinner v0.0.0-20170614154858-48dbb65d7bd5
+	github.com/briandowns/spinner v1.11.1
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/fatih/color v1.7.0
 	github.com/gordonklaus/ineffassign v0.0.0-20190601041439-ed7b1b5ee0f8 // indirect
