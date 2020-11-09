@@ -14,11 +14,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-func client(d MQTT.OnConnectHandler, l MQTT.ConnectionLostHandler) (MQTT.Client, error) {
-	broker := viper.GetString("mqtt.broker")
+func client(config *viper.Viper, d MQTT.OnConnectHandler, l MQTT.ConnectionLostHandler) (MQTT.Client, error) {
+	broker := config.GetString("mqtt.broker")
 	opts := MQTT.NewClientOptions().AddBroker(broker)
-	opts.Username = viper.GetString("mqtt.username")
-	opts.Password = viper.GetString("mqtt.password")
+	opts.Username = config.GetString("mqtt.username")
+	opts.Password = config.GetString("mqtt.password")
 	opts.SetClientID(fmt.Sprintf("mqtt-cli"))
 	opts.OnConnect = d
 	opts.OnConnectionLost = l

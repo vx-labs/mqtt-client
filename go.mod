@@ -5,13 +5,13 @@ go 1.13
 require (
 	github.com/alecthomas/gometalinter v3.0.0+incompatible // indirect
 	github.com/briandowns/spinner v1.11.1
+	github.com/dustin/go-humanize v1.0.0
 	github.com/eclipse/paho.mqtt.golang v1.2.1-0.20200609161119-ca94c5368c77
 	github.com/fatih/color v1.7.0
 	github.com/gordonklaus/ineffassign v0.0.0-20190601041439-ed7b1b5ee0f8 // indirect
 	github.com/lunixbochs/vtclean v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/manifoldco/promptui v0.3.2
-	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/nicksnyder/go-i18n v1.10.1 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/spf13/afero v1.2.2 // indirect

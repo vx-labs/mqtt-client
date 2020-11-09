@@ -12,6 +12,7 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type RawMessage struct {
@@ -39,7 +40,7 @@ func parseTemplate(user string, fallback string) (*template.Template, error) {
 	return nil, err
 }
 
-func mqttSubscriber() *cobra.Command {
+func mqttSubscriber(config *viper.Viper) *cobra.Command {
 	done := make(chan error)
 	var mqtt MQTT.Client
 	c := &cobra.Command{
@@ -58,7 +59,7 @@ func mqttSubscriber() *cobra.Command {
 			for _, topic := range topics {
 				topicsMap[topic] = byte(qos)
 			}
-			mqtt, err = client(func(c MQTT.Client) {
+			mqtt, err = client(config, func(c MQTT.Client) {
 				if token := c.SubscribeMultiple(topicsMap, func(client MQTT.Client, msg MQTT.Message) {
 					data := RawMessage{
 						Parsed:    nil,
