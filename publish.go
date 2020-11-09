@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -19,7 +21,17 @@ func mqttPublisher() *cobra.Command {
 			payload := []byte(getStringFlag(cmd, "message"))
 			qos := getIntFlag(cmd, "qos")
 			if len(payload) == 0 {
-				payload = nil
+				filePath := getStringFlag(cmd, "message-from")
+				if len(filePath) == 0 {
+					payload = nil
+				} else {
+					var err error
+					payload, err = ioutil.ReadFile(filePath)
+					if err != nil {
+						log.Printf("failed to read payload: %v", err)
+						return err
+					}
+				}
 			}
 			if qos > 2 || qos < 0 {
 				return fmt.Errorf("invalid qos provided")
@@ -28,7 +40,6 @@ func mqttPublisher() *cobra.Command {
 				return fmt.Errorf("no topic were selected")
 			}
 			done := make(chan error)
-			spinner := newSpinner(cmd.OutOrStderr(), fmt.Sprintf("publishing message to %s", topic), false)
 			c, err := client(func(c MQTT.Client) {
 				defer close(done)
 				if token := c.Publish(topic, byte(qos), retain, payload); token.Wait() && token.Error() != nil {
@@ -38,20 +49,17 @@ func mqttPublisher() *cobra.Command {
 				}
 			}, connLostHandler(cmd))
 			if err != nil {
-				spinner.Stop()
 				return fmt.Errorf("unable to connect to mqtt broker: %v", err)
 			}
 			err = <-done
-			spinner.Stop()
-			fmt.Fprintf(os.Stdout, "%s %s ← %s\n", color.GreenString(now()), color.CyanString(topic), payload)
-			spinner = newSpinner(cmd.OutOrStderr(), "disconnecting from broker", false)
+			fmt.Fprintf(os.Stdout, "%s %s ← %d bytes\n", color.GreenString(now()), color.CyanString(topic), len(payload))
 			c.Disconnect(1000)
-			spinner.Stop()
 			return err
 		},
 	}
 	c.Flags().StringP("topic", "t", "", "publish the message to the given topic")
 	c.Flags().StringP("message", "m", "", "set the message payload")
+	c.Flags().StringP("message-from", "f", "", "set the message payload from a file")
 	c.Flags().BoolP("retain", "r", false, "ask the broker to retain the message")
 	c.Flags().IntP("qos", "q", 0, "set the message QoS policy")
 

@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"text/template"
 
@@ -24,7 +23,8 @@ type RawMessage struct {
 	Parsed    map[string]interface{}
 }
 
-const defaultMsgFormat = `{{ .Timestamp | green }} {{ .Topic | cyan }} → {{ .Payload }}{{if .Retained}} {{ "(retained)" | yellow }}{{end}}`
+const defaultMsgFormat = `[{{ .Timestamp | yellow | faint }}] {{ .Topic | faint }}
+{{- if .Retained}} {{ .Payload | yellow | faint }}{{ else }} {{ .Payload }}{{end}}`
 
 func parseTemplate(user string, fallback string) (*template.Template, error) {
 	body := fallback
@@ -47,7 +47,6 @@ func mqttSubscriber() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			topics := getStringArrayFlag(cmd, "topic")
 			qos := getIntFlag(cmd, "qos")
-			raw := getBoolFlag(cmd, "raw")
 			userFormat := getStringFlag(cmd, "format")
 
 			sigc := make(chan os.Signal)
@@ -59,9 +58,7 @@ func mqttSubscriber() *cobra.Command {
 			for _, topic := range topics {
 				topicsMap[topic] = byte(qos)
 			}
-			spinner := newSpinner(cmd.OutOrStderr(), fmt.Sprintf("subscribing to topics %s", strings.Join(topics, ",")), raw)
 			mqtt, err = client(func(c MQTT.Client) {
-				spinner.Stop()
 				if token := c.SubscribeMultiple(topicsMap, func(client MQTT.Client, msg MQTT.Message) {
 					data := RawMessage{
 						Parsed:    nil,
@@ -78,7 +75,6 @@ func mqttSubscriber() *cobra.Command {
 				}
 			}, connLostHandler(cmd))
 			if err != nil {
-				spinner.Stop()
 				return fmt.Errorf("unable to connect to mqtt broker: %v", err)
 			}
 			signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
@@ -87,9 +83,7 @@ func mqttSubscriber() *cobra.Command {
 				return err
 			case <-sigc:
 				fmt.Print("\n")
-				spinner = newSpinner(cmd.OutOrStderr(), "disconnecting from broker", raw)
 				mqtt.Disconnect(1000)
-				spinner.Stop()
 				return nil
 			}
 		},

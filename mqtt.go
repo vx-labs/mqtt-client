@@ -47,7 +47,7 @@ func client(d MQTT.OnConnectHandler, l MQTT.ConnectionLostHandler) (MQTT.Client,
 }
 
 func now() string {
-	return time.Now().Format(time.Stamp)
+	return time.Now().Format("15:04:05")
 }
 
 func connLostHandler(app *cobra.Command) MQTT.ConnectionLostHandler {
